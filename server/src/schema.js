@@ -1,5 +1,5 @@
 import { gql } from 'apollo-server-express'
-import { find, remove } from 'lodash'
+import { find, remove , filter } from 'lodash'
 
 const people = [
   {
@@ -103,7 +103,10 @@ const typeDefs = gql`
 
   type Query {
     people: [Person]
-    boats: [Boat]
+    person(id: String!): Person
+    boatsByPerson(personId:String!): [Boat]
+    boat(id:String!): Boat
+    boatsList : [Boat]
   }
 
   type Mutation {
@@ -128,7 +131,16 @@ const typeDefs = gql`
 const resolvers = {
   Query: {
     people: () => people,
-    boats: () => boats
+    person: (parent,args,context,info) => {
+      return find(people, {id: args.id})
+    },
+    boatsByPerson: (parent, args,context,info) => {
+      return filter(boats, {personId: args.personId})
+    },
+    boat: (parent,args,context,info) => {
+      return find(boats, {id: args.id})
+    },
+    boatsList: () => boats
   },
   Mutation: {
     addPerson: (root, args) => {
@@ -171,6 +183,31 @@ const resolvers = {
       }
       boats.push(newBoat)
       return newBoat
+    },
+    
+    updateBoat: (root, args) => {
+      const boat = find(boats, { id: args.id })
+      if (!boat) {
+        throw new Error(`Couldn't find boat with id ${args.id}`)
+      }
+
+      boat.year = args.year
+      boat.make = args.make
+      boat.model = args.model
+      boat.price = args.price
+      boat.personId = args.personId
+      return boat
+    },
+
+    removeBoat: (root, args) => {
+      const removedBoat = find(boats, { id: args.id })
+      if (!removedBoat) {
+        throw new Error(`Couldn't find boat with id ${args.id}`)
+      }
+      remove(boats, a => {
+        return a.id === removedBoat.id
+      })
+      return removedBoat
     }
   }
 }
